@@ -11,7 +11,6 @@ import (
 
 	"github.com/gprossliner/kustomizepb/knownerror"
 	"github.com/gprossliner/kustomizepb/kubeaccess"
-	"github.com/gprossliner/kustomizepb/output"
 	"github.com/gprossliner/kustomizepb/playbook"
 	"gopkg.in/yaml.v2"
 )
@@ -161,6 +160,8 @@ type EventID int
 
 const (
 	EV_ComponentStarted EventID = iota
+	EV_TestApplyConditions
+	EV_ApplyConditionsNotFulfilled
 	EV_ComponentApplying
 	EV_TestReadiness
 	EV_ComponentReady
@@ -180,17 +181,15 @@ func (run *Run) Run(ctx context.Context, options *Options, events chan<- RunEven
 
 		// check conditions
 		if len(c.ApplyConditions) > 0 {
+			events <- RunEvent{EV_TestApplyConditions, &c.Component}
 			isff, err := c.ApplyConditions.IsFulfilled(ctx, options.KubeAccess)
 			if err != nil {
 				return err
 			}
 
 			if !isff {
-				output.InfoF("Conditions not fulfilled, component considered applied")
-				c.Applied = true
+				events <- RunEvent{EV_ApplyConditionsNotFulfilled, &c.Component}
 				continue
-			} else {
-				output.InfoF("Conditions fulfilled")
 			}
 
 		}

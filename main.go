@@ -88,6 +88,12 @@ func themain(ctx context.Context) error {
 			case execution.EV_ComponentStarted:
 				output.HeadingF("Processing component '%s'", event.Component.Name)
 
+			case execution.EV_TestApplyConditions:
+				output.InfoF("Testing applyConditions")
+
+			case execution.EV_ApplyConditionsNotFulfilled:
+				output.InfoF("applyConditions not fulfilled")
+
 			case execution.EV_ComponentApplying:
 				output.InfoF("Applying component")
 
