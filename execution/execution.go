@@ -200,7 +200,7 @@ func (run *Run) Run(ctx context.Context, options *Options, events chan<- RunEven
 		for rcnt := 0; ; rcnt++ {
 			err := c.Apply(ctx, options)
 			if err != nil {
-				if rcnt == 10 {
+				if rcnt == 15 {
 					return err
 				} else {
 					events <- RunEvent{EV_ComponentApplyRetry, &c.Component}
@@ -214,7 +214,7 @@ func (run *Run) Run(ctx context.Context, options *Options, events chan<- RunEven
 		if len(c.ReadinessConditions) == 0 {
 			events <- RunEvent{EV_ComponentReady, &c.Component}
 		} else {
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 40; i++ {
 				events <- RunEvent{EV_TestReadiness, &c.Component}
 
 				time.Sleep(time.Duration(i) * time.Second)

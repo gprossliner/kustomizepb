@@ -7,6 +7,10 @@ Furthermore it allows to perform envsubst on kustomizations.
 
 It is designed in the same way that kustomize works.
 
+# Installation
+
+You can install the latest version by `go install github.com/gprossliner/kustomizepb@latest`
+
 # Components
 
 Like kustomize, kustomizepb is executed against a directory, which is required 

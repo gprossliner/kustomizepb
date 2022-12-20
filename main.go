@@ -105,9 +105,6 @@ func themain(ctx context.Context) error {
 
 			case execution.EV_ComponentReady:
 				output.InfoF("Component ready")
-
-			default:
-				return
 			}
 
 		}
