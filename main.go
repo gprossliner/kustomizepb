@@ -97,6 +97,9 @@ func themain(ctx context.Context) error {
 			case execution.EV_ComponentApplying:
 				output.InfoF("Applying component")
 
+			case execution.EV_ComponentApplyRetry:
+				output.InfoF("Retry applying component")
+
 			case execution.EV_TestReadiness:
 				output.InfoF("Testing readiness")
 

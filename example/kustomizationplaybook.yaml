@@ -44,6 +44,9 @@ components:
   readinessConditions:
   - customResourceDefinition:
       name: ipaddresspools.metallb.io
+  - serviceReady:
+      name: metallb-webhook-service
+      namespace: metallb
 
 - name: cert-manager-operator
   kustomization:

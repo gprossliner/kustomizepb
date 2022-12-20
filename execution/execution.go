@@ -163,6 +163,7 @@ const (
 	EV_TestApplyConditions
 	EV_ApplyConditionsNotFulfilled
 	EV_ComponentApplying
+	EV_ComponentApplyRetry
 	EV_TestReadiness
 	EV_ComponentReady
 )
@@ -195,9 +196,19 @@ func (run *Run) Run(ctx context.Context, options *Options, events chan<- RunEven
 		}
 
 		events <- RunEvent{EV_ComponentApplying, &c.Component}
-		err := c.Apply(ctx, options)
-		if err != nil {
-			return err
+
+		for rcnt := 0; ; rcnt++ {
+			err := c.Apply(ctx, options)
+			if err != nil {
+				if rcnt == 10 {
+					return err
+				} else {
+					events <- RunEvent{EV_ComponentApplyRetry, &c.Component}
+					time.Sleep(time.Duration(rcnt) * time.Second)
+				}
+			} else {
+				break
+			}
 		}
 
 		if len(c.ReadinessConditions) == 0 {
