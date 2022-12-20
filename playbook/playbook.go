@@ -48,22 +48,46 @@ func (pb *Playbook) Validate() []error {
 		errs = append(errs, knownerror.NewKnownError("kind must be '%s', not '%s", Kind, pb.Kind))
 	}
 
+	// remember visited components for dependency validation
+	var visitedComponents []string
+
 	for _, c := range pb.Components {
 		err := IsValidComponentName(c.Name)
 		if err != nil {
 			errs = append(errs, err)
 		}
 
+		visitedComponents = append(visitedComponents, c.Name)
+
+		hasVisited := func(name string) bool {
+			for _, vn := range visitedComponents {
+				if name == vn {
+					return true
+				}
+			}
+
+			return false
+		}
+
 		for _, dp := range c.DependsOn {
+
+			// check name
 			err := IsValidComponentName(dp.Name)
 			if err != nil {
 				errs = append(errs, err)
 			}
 
+			// check dependency exist
 			hasCp := pb.tryFindComponent(dp.Name)
 			if hasCp == nil {
 				errs = append(errs, knownerror.NewKnownError("Dependency '%s' of component '%s' is not defined ", dp.Name, c.Name))
+			} else {
+				// check dependency order
+				if !hasVisited(dp.Name) {
+					errs = append(errs, knownerror.NewKnownError("Dependency '%s' of component '%s' must not be before the component", dp.Name, c.Name))
+				}
 			}
+
 		}
 	}
 

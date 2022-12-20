@@ -190,3 +190,27 @@ components:
 	assert.Regexp(t, "\\'thecomponent\\'", ke.Message) // must contain the name 'thecomponent'
 
 }
+
+func TestComponentValidation_DependencyBeforeComponent(t *testing.T) {
+	y := `
+apiVersion: kustomizeplaybook.world-direct.at/v1beta1
+kind: KustomizationPlaybook
+components:
+- name: dependency
+  dependsOn:
+  - name: base
+- name: base
+`
+	pb, err := Unmarshal([]byte(y))
+	assert.NoError(t, err)
+	assert.NotNil(t, pb)
+
+	errs := pb.Validate()
+	assert.NotNil(t, errs)
+	assert.Len(t, errs, 1)
+	ke := assertKnownError(t, errs, 0)
+	assert.Regexp(t, "\\'base\\'", ke.Message)         // must contain the name 'base'
+	assert.Regexp(t, "\\'dependency\\'", ke.Message)   // must contain the name 'dependency'
+	assert.Regexp(t, "must not be before", ke.Message) // must contain the name 'dependency'
+
+}
