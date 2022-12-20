@@ -1,0 +1,22 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: mysql-operator-helmrepo
+spec:
+  interval: 15m0s
+  url: https://mysql.github.io/mysql-operator/
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: mysql-operator
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: mysql-operator
+      sourceRef:
+        kind: HelmRepository
+        name: mysql-operator-helmrepo
+      interval: 5m

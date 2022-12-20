@@ -1,0 +1,111 @@
+apiVersion: kustomizeplaybook.world-direct.at/v1beta1
+kind: KustomizationPlaybook
+
+prerequisites:
+- customResourceDefinition:
+    name: helmrepositories.source.toolkit.fluxcd.io
+  message: fluxcd need to be installed before running the playbook
+
+components:
+
+# metalllb 
+- name: metallb
+  kustomization:
+    resources:
+    - ./metallb/1-operator
+  readinessConditions:
+  - customResourceDefinition:
+      name: ipaddresspools.metallb.io
+      
+- name: metallb-addresspools
+  dependsOn:
+  - name: metallb
+  envsubst: true
+  kustomization:
+    resources:
+    - ./metallb/2-address-pools
+    patchesJson6902:
+    - target:
+        version: v1beta1
+        kind: IPAddressPool
+        name: ingress
+      patch: |-
+        - op: add
+          path: /spec/addresses/0
+          value: '${CFG_IP_INGRESS}/32'
+    - target:
+        version: v1beta1
+        kind: IPAddressPool
+        name: kasico
+      patch: |-
+        - op: add
+          path: /spec/addresses/0
+          value: '${CFG_IP_KASICO}/32'
+  readinessConditions:
+  - customResourceDefinition:
+      name: ipaddresspools.metallb.io
+
+- name: cert-manager-operator
+  kustomization:
+    resources:
+    - ./cert-manager/1-operator
+  readinessConditions:
+  - customResourceDefinition:
+      name: clusterissuers.cert-manager.io
+  - serviceReady:
+      name: cert-manager-webhook
+      namespace: cert-manager
+
+- name: cert-manager-clusterissuer
+  dependsOn:
+  - name: cert-manager-operator
+  kustomization:
+    resources:
+    - ./cert-manager/2-clusterissuer
+    patchesJson6902:
+    - target:
+        kind: ClusterIssuer
+        version: v1
+        name: default
+      patch: |-
+        - op: add
+          path: /spec/acme/email
+          value: '${CFG_LETSENCRYPT_EMAIL}'
+
+- name: mysql-operator
+  kustomization:
+    resources:
+    - "./mysql-operator"
+  readinessConditions:
+  - customResourceDefinition:
+      name: innodbclusters.mysql.oracle.com
+
+- name: innodb-cluster
+  dependsOn:
+  - name: mysql-operator
+  readinessConditions:
+  - compare:
+      value:
+        objectValue:
+          apiVersion: mysql.oracle.com/v2
+          kind: InnoDBCluster
+          namespace: innodb-default
+          name: innodbclu1
+          goTemplate: "{{.status.cluster.status}}"
+      with:
+        scalarValue: ONLINE
+  envsubst: true
+  kustomization:
+    resources:
+    - "./innodb-cluster"
+    patchesJson6902:
+    - target:
+        kind: Secret
+        version: v1
+        name: innodbclu1-passwords
+      patch: |-
+        # add with inline operation
+        - op: add
+          path: /stringData/rootPassword
+          value: ${CFG_INNODB_ROOTPASSWORD}
+

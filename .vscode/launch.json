@@ -12,10 +12,10 @@
             "program": "${workspaceFolder}",
             "args": [
                 "--envfile",
-                "../clusters/rke-test/config.secret.env",
+                "./example/config.env",
                 "--knownNode",
                 "kind-control-plane",
-                "../clusters/rke-test"
+                "./example"
             ]
         }
     ]

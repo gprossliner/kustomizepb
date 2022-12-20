@@ -1,0 +1,4 @@
+resources:
+- "address-pools.yaml"
+
+namespace: metallb

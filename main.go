@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
@@ -68,7 +70,7 @@ func loadRun(ctx context.Context, options *Options) (*Run, error) {
 	stat, err = os.Stat(playbookFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, knownerror.NewKnownError("Directoy %s doesn't exist", directory)
+			return nil, knownerror.NewKnownError("File %s doesn't exist", playbookFile)
 		}
 		return nil, err
 	} else if !stat.Mode().IsRegular() {
@@ -286,17 +288,11 @@ func applyManifest(ctx context.Context, manifest []byte) error {
 		return err
 	}
 
-	cmd := NewCommand("kubectl", "apply", "-f", f.Name())
+	// execute kubectl
+	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	if cmd.ExitCode != 0 {
-		os.Stderr.Write(cmd.Stderr)
-	}
-
-	os.Stdout.Write(cmd.Stdout)
 
 	if err != nil {
 		return err
@@ -326,17 +322,19 @@ func buildKustomization(ctx context.Context, kustomization playbook.Kustomizatio
 	defer os.Remove(kustomizationFilePath)
 
 	// execute kustomize build
-	cmd := NewCommand("kustomize", "build", path.Dir(kustomizationFilePath))
+	cmd := exec.Command("kustomize", "build", path.Dir(kustomizationFilePath))
+	cmd.Stderr = os.Stderr
+
+	var outbuff bytes.Buffer
+	cmd.Stdout = &outbuff
+
 	err = cmd.Run()
+
 	if err != nil {
 		return nil, err
 	}
 
-	if cmd.ExitCode != 0 {
-		os.Stderr.Write(cmd.Stderr)
-	}
-
-	return cmd.Stdout, nil
+	return outbuff.Bytes(), nil
 }
 
 // Options are the processed options for the caller

@@ -1,0 +1,13 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: kasico
+spec:
+  addresses: [] #CFG_IP_KASICO
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: ingress
+spec:
+  addresses: [] #CFG_IP_INGRESS

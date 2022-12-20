@@ -1,0 +1,5 @@
+resources:
+- "ns.yaml"
+- "innodb-cluster.yaml"
+
+namespace: innodb-default
