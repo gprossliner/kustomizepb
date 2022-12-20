@@ -79,7 +79,34 @@ func themain(ctx context.Context) error {
 		return err
 	}
 
-	err = run.Run(ctx, options)
+	events := make(chan execution.RunEvent)
+	go func() {
+
+		for {
+
+			switch event := <-events; event.ID {
+			case execution.EV_ComponentStarted:
+				output.HeadingF("Processing component '%s'", event.Component.Name)
+
+			case execution.EV_ComponentApplying:
+				output.InfoF("Applying component")
+
+			case execution.EV_TestReadiness:
+				output.InfoF("Testing readiness")
+
+			case execution.EV_ComponentReady:
+				output.InfoF("Component ready")
+
+			default:
+				return
+			}
+
+		}
+	}()
+
+	defer close(events)
+
+	err = run.Run(ctx, options, events)
 	if err != nil {
 		return err
 	}

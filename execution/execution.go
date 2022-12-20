@@ -157,12 +157,26 @@ func (run *Run) GetComponent(name string) *RunComponent {
 	return nil
 }
 
-func (run *Run) Run(ctx context.Context, options *Options) error {
+type EventID int
+
+const (
+	EV_ComponentStarted EventID = iota
+	EV_ComponentApplying
+	EV_TestReadiness
+	EV_ComponentReady
+)
+
+type RunEvent struct {
+	ID        EventID
+	Component *playbook.Component
+}
+
+func (run *Run) Run(ctx context.Context, options *Options, events chan<- RunEvent) error {
 
 	for i := range run.Components {
 		c := &run.Components[i]
 
-		output.HeadingF("Running component '%s'", c.Name)
+		events <- RunEvent{EV_ComponentStarted, &c.Component}
 
 		// check conditions
 		if len(c.ApplyConditions) > 0 {
@@ -181,29 +195,17 @@ func (run *Run) Run(ctx context.Context, options *Options) error {
 
 		}
 
-		// check depends
-		for _, dep := range c.DependsOn {
-			depc := run.GetComponent(dep.Name)
-			if depc == nil {
-				panic("ASSERTION component not found, this should have been validated!")
-			}
-			if !depc.Applied {
-				output.InfoF("Depends on '%s', which has not been applied", dep.Name)
-				continue
-			}
-		}
-
-		output.InfoF("'%s' is to be applied", c.Name)
+		events <- RunEvent{EV_ComponentApplying, &c.Component}
 		err := c.Apply(ctx, options)
 		if err != nil {
 			return err
 		}
 
 		if len(c.ReadinessConditions) == 0 {
-			output.InfoF("No readinessConditions defined")
+			events <- RunEvent{EV_ComponentReady, &c.Component}
 		} else {
 			for i := 0; i < 10; i++ {
-				output.InfoF("Test readinessConditions")
+				events <- RunEvent{EV_TestReadiness, &c.Component}
 
 				time.Sleep(time.Duration(i) * time.Second)
 				isff, err := c.CheckReadiness(ctx, options.KubeAccess)
@@ -219,7 +221,7 @@ func (run *Run) Run(ctx context.Context, options *Options) error {
 			}
 
 			if c.Ready {
-				output.InfoF("readinessConditions fulfilled")
+				events <- RunEvent{EV_ComponentReady, &c.Component}
 			} else {
 				return knownerror.NewKnownError("RedinessConditions are not fulfilled")
 			}
