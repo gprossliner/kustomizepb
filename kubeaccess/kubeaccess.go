@@ -6,7 +6,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -142,28 +141,27 @@ func (ka *KubeAccess) HasCustomResourceName(ctx context.Context, customResourceN
 func (ka *KubeAccess) IsServiceReady(ctx context.Context, name, namespace string) (bool, error) {
 
 	// get the service
-	service, err := ka.KubeClientset.CoreV1().
-		Services(namespace).
-		Get(ctx, name, metav1.GetOptions{})
+	// service, err := ka.KubeClientset.CoreV1().
+	// 	Services(namespace).
+	// 	Get(ctx, name, metav1.GetOptions{})
 
-	if err != nil {
-		return false, err
-	}
+	// if err != nil {
+	// 	return false, err
+	// }
 
-	// find the endpoints by selectors
-	set := labels.Set(service.Spec.Selector)
-	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	eps, err := ka.KubeClientset.CoreV1().Endpoints(namespace).List(ctx, listOptions)
+	// find the endpoints by name
+	// TODO: check if it's really guaranteed that we always have an endpoint for
+	// a given service with the same name
+	ep, err := ka.KubeClientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+
 		return false, err
 	}
 
 	// check if there are endpoints
-	if len(eps.Items) == 0 {
-		return false, nil
-	}
-
-	ep := eps.Items[0]
 	hasActiveEP := len(ep.Subsets) > 0 && len(ep.Subsets[0].Addresses) > 0
 
 	return hasActiveEP, nil
