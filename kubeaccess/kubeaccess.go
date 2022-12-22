@@ -22,16 +22,29 @@ type KubeAccess struct {
 	KubeClientset  *kubernetes.Clientset
 }
 
-func NewKubeAccess(kubeconfig string) (*KubeAccess, error) {
+func NewKubeAccess(kubeconfig string, kubecontext string) (*KubeAccess, error) {
 
 	options := &KubeAccess{}
 
 	// use the current context in kubeconfig
-	kconfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
+	if kubecontext == "" {
+		kconfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, err
+		}
+		options.KubeRest = kconfig
+	} else {
+		kconfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+			&clientcmd.ConfigOverrides{
+				CurrentContext: kubecontext,
+			}).ClientConfig()
+
+		if err != nil {
+			return nil, err
+		}
+		options.KubeRest = kconfig
 	}
-	options.KubeRest = kconfig
 
 	// build a dynamicclient
 	dynClient, err := dynamic.NewForConfig(options.KubeRest)
@@ -40,7 +53,7 @@ func NewKubeAccess(kubeconfig string) (*KubeAccess, error) {
 	}
 	options.KubeDynClient = dynClient
 
-	cs, err := kubernetes.NewForConfig(kconfig)
+	cs, err := kubernetes.NewForConfig(options.KubeRest)
 	if err != nil {
 		return nil, err
 	}

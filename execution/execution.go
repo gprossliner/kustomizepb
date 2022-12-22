@@ -26,9 +26,11 @@ const (
 )
 
 type Options struct {
-	KubeAccess *kubeaccess.KubeAccess
-	Directory  string
-	Envs       map[string]string
+	KubeAccess  *kubeaccess.KubeAccess
+	KubeConfig  string
+	KubeContext string
+	Directory   string
+	Envs        map[string]string
 }
 
 type RunComponent struct {
@@ -273,7 +275,7 @@ func (c *RunComponent) Apply(ctx context.Context, options *Options) error {
 		return err
 	}
 
-	err = applyManifest(ctx, manifestData)
+	err = applyManifest(ctx, manifestData, options)
 	if err != nil {
 		return err
 	}
@@ -283,7 +285,7 @@ func (c *RunComponent) Apply(ctx context.Context, options *Options) error {
 	return nil
 }
 
-func applyManifest(ctx context.Context, manifest []byte) error {
+func applyManifest(ctx context.Context, manifest []byte, options *Options) error {
 	f, err := os.CreateTemp("", "")
 	if err != nil {
 		return err
@@ -298,7 +300,12 @@ func applyManifest(ctx context.Context, manifest []byte) error {
 	}
 
 	// execute kubectl
-	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
+	args := []string{"--kubeconfig", options.KubeConfig}
+	if options.KubeContext != "" {
+		args = append(args, "--context", options.KubeContext)
+	}
+	args = append(args, "apply", "-f", f.Name())
+	cmd := exec.Command("kubectl", args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()

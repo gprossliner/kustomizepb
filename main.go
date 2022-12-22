@@ -31,9 +31,10 @@ func main() {
 
 func themain(ctx context.Context) error {
 
-	var kubeconfig, envfile, knownNode string
+	var kubeconfig, kubecontext, envfile, knownNode string
 
 	flag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	flag.StringVar(&kubecontext, "context", "", "The name of the kubeconfig context to use")
 	flag.StringVar(&envfile, "envfile", "", "file for envsubst")
 	flag.StringVar(&knownNode, "knownNode", "", "specify the name of a cluster node that must exist")
 
@@ -43,14 +44,16 @@ func themain(ctx context.Context) error {
 		os.Exit(1)
 	}
 
-	ka, err := kubeaccess.NewKubeAccess(kubeconfig)
+	ka, err := kubeaccess.NewKubeAccess(kubeconfig, kubecontext)
 	if err != nil {
 		return err
 	}
 
 	options := &execution.Options{
-		KubeAccess: ka,
-		Directory:  flag.Arg(0),
+		KubeAccess:  ka,
+		KubeConfig:  kubeconfig,
+		KubeContext: kubecontext,
+		Directory:   flag.Arg(0),
 	}
 
 	// validate knownNode

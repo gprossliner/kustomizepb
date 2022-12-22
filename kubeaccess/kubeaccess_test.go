@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 
 	}
 
-	ka, err = NewKubeAccess(kubeconfigpath)
+	ka, err = NewKubeAccess(kubeconfigpath, "")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -87,7 +87,7 @@ func TestMain(m *testing.M) {
 func TestGetNodeObject(t *testing.T) {
 	var err error
 
-	ka, err := NewKubeAccess(kubeconfigpath)
+	ka, err := NewKubeAccess(kubeconfigpath, "")
 	assert.NoError(t, err)
 
 	gvr, err := ka.TryGetGroupVersionResource("v1", "Node")
@@ -106,7 +106,7 @@ func TestServiceReady(t *testing.T) {
 	var err error
 	ctx := context.Background()
 
-	ka, err := NewKubeAccess(kubeconfigpath)
+	ka, err := NewKubeAccess(kubeconfigpath, "")
 	assert.NoError(t, err)
 
 	cv1 := ka.KubeClientset.CoreV1()

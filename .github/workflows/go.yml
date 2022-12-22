@@ -27,14 +27,14 @@ jobs:
     - name: Test
       run: go test -v ./...
       
-    - name: Install kind
-      run: go install sigs.k8s.io/kind@latest
+    # - name: Install kind
+    #   run: go install sigs.k8s.io/kind@latest
 
-    - name: Install flux
-      run: curl -s https://fluxcd.io/install.sh | sudo bash
+    # - name: Install flux
+    #   run: curl -s https://fluxcd.io/install.sh | sudo bash
 
-    - name: Prepare kind cluster
-      run: make resetkind
+    # - name: Prepare kind cluster
+    #   run: make resetkind
 
-    - name: Apply example
-      run: make run-example
+    # - name: Apply example
+    #   run: make run-example
